@@ -66,7 +66,7 @@ class PISFPA:
 
         #weight_in
         if isinstance(w_init, np.ndarray):
-            self._w = bias_init
+            self._w = w_init
         else:
             self._w = np.random.uniform(-1., 1., (self._num_input_nodes, self._num_hidden_units))
 
