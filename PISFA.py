@@ -126,3 +126,59 @@ class PISFPA:
         acc = np.sum(np.argmax(pred, axis=-1) == np.argmax(Y, axis=-1)) / len(Y)
 
         return loss, acc
+    
+    
+
+class ELM_AE:
+    def __init__(self, n_hidden, X, activation='sigmoid',loss='mse'):
+        self.X = X
+
+        self._num_input_nodes = X.shape[1]
+        self._num_output_units = X.shape[1]
+        self._num_hidden_units = n_hidden
+        
+        self._activation = getActivation(activation)
+        self._loss = getLoss(loss)
+        
+        self._beta = np.random.uniform(-1., 1., (self._num_hidden_units, self._num_output_units))
+        self._w = np.random.uniform(-1., 1., (self._num_input_nodes, self._num_hidden_units))
+        self._bias = np.zeros(shape=(self._num_hidden_units,))
+        
+        
+    def fit(self, itrs, lam, display_time=False):
+        H = self._activation(np.dot(self.X, self._w) + self._bias)
+
+        if display_time:
+            start = time.time()
+
+        L = 1. / np.max(np.linalg.eigvals(np.dot(H.T, H))).real
+        m = H.shape[1]
+        n = self._num_output_units
+        x0 = np.zeros((m,n))
+        x1 = np.zeros((m,n))
+        L1 = 2*L*np.dot(H.T, H)
+        L2 = 2*L*np.dot(H.T, self.X)
+
+        for i in range(1,itrs+1):
+            cn = ((2e-6*i)/(2*i+1))*lam*L
+            beta = 0.9*i/(i+1)
+            alpha = 0.9*i/(i+1)
+
+            y = x1 + thetan(x0,x1,i)*(x1-x0)
+            z = (1-beta)*x1 + beta*T(x1,L1,L2,cn)
+
+            Ty = T(y,L1,L2,cn)
+            Tz = T(z,L1,L2,cn)
+            x = (1-alpha)*Ty + alpha*Tz
+
+            x0, x1 = x1, x
+
+        if display_time:
+            stop = time.time()
+            print(f'Train time: {stop-start}')
+
+        self._beta = x
+        
+    def __call__(self):
+        H = self._activation( np.dot(self.X, self._w) + self._bias )
+        return np.dot(H, self._beta)
