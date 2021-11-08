@@ -2,6 +2,7 @@ import numpy as np
 import time
 from sklearn.decomposition import PCA
 from sklearn.random_projection import GaussianRandomProjection
+
 #Error
 def _mean_squared_error(y, pred):
     return 0.5 * np.mean((y - pred) ** 2)
@@ -22,12 +23,16 @@ def _identity(x):
 def _hardlimit(x):
     return (x >= 0).astype(int)
 
+def _relu(x):
+    return np.maximum(x, 0, x)
+
 #Get function
 def getActivation(name):
     return {
         'sigmoid': _sigmoid,
         'fourier': _fourier,
         'hardlimit': _hardlimit,
+        'relu': _relu
     }[name]
 
 def getLoss(name):
@@ -49,6 +54,14 @@ def thetan(x0,x1,n):
     else:
         return 1/(2**n*np.linalg.norm(x1-x0,'fro'))
 
+# Normalized
+def normalized(array, x, y):
+    m = np.min(array)
+    range_1 = np.max(array) - m
+    array = (array - m) / range_1
+    
+    range_2 = y - x
+    return (array * range_2) + x
 
 class PISFPA:
     def __init__(self, num_input_nodes, num_hidden_units, num_output_units, activation='sigmoid',loss='mse', beta_init=None, w_init=None, bias_init=None):
@@ -119,7 +132,8 @@ class PISFPA:
     def __call__(self, X):
         H = self._activation(X.dot(self._w) + self._bias)
         return H.dot(self._beta)
-
+    
+  
     def evaluate(self, X, Y):
         pred = self(X)
 
@@ -202,6 +216,7 @@ class PISFPA_PCA:
     def fit(self, X, Y, itrs, lam, display_time=False):
     
         self._w = self.pca.fit_transform(X)
+        
         H = self._activation(self._w + self._bias)
         if display_time:
             start = time.time()
